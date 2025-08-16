@@ -1,0 +1,71 @@
+# MVP – Chrome Snippet Dummy Classifier (No npm)
+
+This repo proves our company environment can:
+1) Load an ES module and JSON from GitHub Raw,
+2) Run a tiny dummy "classifier" in the browser,
+3) Export a CSV – all without npm/Hugging Face/servers.
+
+## Files
+- `web/simple-classifier.mjs` – keyword-based dummy classifier.
+- `data/taxonomy.json` – category → subcategories.
+- `data/demo-questions.json` – sample questions.
+
+## How to test (on your company PC)
+1. Open any webpage in Chrome.
+2. Press **F12** → **Sources** → **Snippets** → New.
+3. Paste the snippet below, set `REPO` to `<your-github-username>/mvp-llm-test`, then Run.
+
+```js
+// ======== EDIT ME ========
+const REPO   = "<your-github-username>/mvp-llm-test";
+const BRANCH = "main";
+// =========================
+
+(async () => {
+  const GH_RAW = (path) => `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${path}`;
+  async function importFromGitHub(pathToESM) {
+    const res = await fetch(GH_RAW(pathToESM));
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText} for ${pathToESM}`);
+    const code = await res.text();
+    const url = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+    return await import(url);
+  }
+
+  const mod = await importFromGitHub("web/simple-classifier.mjs");
+  console.log("[MVP] Module loaded, version =", mod.MODULE_VERSION);
+
+  const [taxonomy, questions] = await Promise.all([
+    fetch(GH_RAW("data/taxonomy.json")).then(r => r.json()),
+    fetch(GH_RAW("data/demo-questions.json")).then(r => r.json())
+  ]);
+  console.log("[MVP] Loaded taxonomy & questions:", taxonomy, questions);
+
+  const results = questions.map(q => {
+    const r = mod.classify(q, taxonomy);
+    return { question: q, ...r };
+  });
+  console.table(results);
+
+  const csv = [
+    ["question","category","subcategory","confidence","rationale"].join(","),
+    ...results.map(r => [r.question, r.category, r.subcategory, r.confidence, r.rationale]
+      .map(s => `"${String(s).replace(/"/g, '""')}"`).join(","))
+  ].join("\\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: "classification_results.csv" });
+  a.click(); URL.revokeObjectURL(url);
+
+  console.log("[MVP] ✅ All good. CSV downloaded.");
+})().catch(e => console.error("[MVP] ❌ Error:", e));
+```
+
+## What it proves
+- ✅ **ES Module loading** from GitHub Raw URLs
+- ✅ **JSON fetching** and parsing
+- ✅ **Browser-based execution** without npm
+- ✅ **CSV export** functionality
+- ✅ **No external dependencies** or services
+
+Perfect for proving the concept works in your company's restricted environment!

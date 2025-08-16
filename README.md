@@ -99,6 +99,13 @@ const BRANCH = "main";
 })();
 ```
 
+## Raw URLs for Testing
+These URLs can be accessed directly to verify the files are reachable:
+
+- **Module**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/web/simple-classifier.mjs
+- **Taxonomy**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/data/taxonomy.json
+- **Questions**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/data/demo-questions.json
+
 ## What it proves
 - ✅ **ES Module loading** from GitHub Raw URLs
 - ✅ **JSON fetching** and parsing

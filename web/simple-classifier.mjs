@@ -10,7 +10,7 @@ export function classify(text, taxonomy) {
     { words: ["password", "login", "sign in"], cat: "Accounts", sub: "Login/Password" },
     { words: ["kyc", "verify", "verification", "identity"], cat: "Accounts", sub: "KYC/Verification" },
     { words: ["transfer", "withdraw", "deposit"], cat: "Accounts", sub: "Transfers" },
-    { words: ["pending", "filled", "cancel", "modify"], cat: "Orders & Trading", sub: "Status" },
+    { words: ["pending", "filled", "cancel", "modify"], cat: "Orders & Trading", sub: "Modify/Cancel" },
     { words: ["place order", "buy", "sell"], cat: "Orders & Trading", sub: "Place Order" },
     { words: ["option"], cat: "Products", sub: "Options" },
     { words: ["etf"], cat: "Products", sub: "ETFs" },

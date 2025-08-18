@@ -114,3 +114,11 @@ These URLs can be accessed directly to verify the files are reachable:
 - ✅ **No external dependencies** or services
 
 Perfect for proving the concept works in your company's restricted environment!
+
+## Browser LLM (WebLLM) Assets
+
+This repo can host a tiny browser LLM runtime and model for Chrome DevTools:
+- `webllm/web-llm.mjs`
+- `models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/` (MLC format)
+
+See **LLM_README.md** for upload rules and raw URL checks.

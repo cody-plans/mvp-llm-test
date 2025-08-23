@@ -5,7 +5,7 @@ A demonstration of running WebLLM models in the browser without npm installation
 ## Files
 - `webllm/web-llm.mjs` – WebLLM runtime engine
 - `models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/` – MLC format model files
-- `src/taxonomyStore.ts` – Data store utilities
+- `src/taxonomyStore.js` – Data store utilities
 - `data/sample-taxonomy.csv` – Sample data template
 - `tools/import_taxonomy_snippet.js` – Data import utilities
 
@@ -39,17 +39,17 @@ const BRANCH = "main";
     console.time("[Demo] total");
     
     // Load components
-    const taxonomyStore = await importFromGitHub("src/taxonomyStore.ts");
+    const taxonomyStore = await importFromGitHub("src/taxonomyStore.js");
     const webllm = await importFromGitHub("webllm/web-llm.mjs");
     
     // Initialize and run demo
-    const availableLOBs = await taxonomyStore.getAvailableLOBs();
-    if (availableLOBs.length === 0) {
+    const availableGroups = await taxonomyStore.getAvailableGroups();
+    if (availableGroups.length === 0) {
       throw new Error("No data found. Please run the import script first.");
     }
 
-    const lob = availableLOBs[0];
-    const taxonomy = await taxonomyStore.loadActiveTaxonomy(lob);
+    const group = availableGroups[0];
+    const taxonomy = await taxonomyStore.loadActiveTaxonomy(group);
     
     if (!taxonomy) {
       throw new Error("Failed to load data");
@@ -66,22 +66,60 @@ const BRANCH = "main";
         }]
       }
     });
-
     console.log("WebLLM engine ready");
-    console.log("Demo completed successfully");
-    
+
+    // Run LLM classification
+    const sampleQuestions = [
+      "How do I reset my web password?",
+      "I need an OTP for my transaction"
+    ];
+
+    const results = [];
+    for (const q of sampleQuestions) {
+      const messages = [
+        { role: "system", content: "You are a JSON classifier. Return ONLY a JSON object with keys: category, subcategory, confidence, rationale." },
+        { role: "user", content: `Classify: ${q}` }
+      ];
+      const r = await engine.chat.completions.create({ messages, temperature: 0, max_tokens: 120 });
+      const content = r.choices?.[0]?.message?.content ?? "{}";
+      try {
+        const parsed = JSON.parse(content);
+        results.push({ question: q, ...parsed });
+      } catch {
+        results.push({ question: q, category: "Other", subcategory: "General", confidence: 0, rationale: "Parse fail" });
+      }
+    }
+    console.table(results);
+
+    // Generate and download CSV
+    const csv = [
+      ["question","category","subcategory","confidence","rationale"].join(","),
+      ...results.map(r => [r.question, r.category, r.subcategory, r.confidence, r.rationale]
+        .map(s => `"${String(s).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), { href: url, download: "classification_results.csv" });
+    a.click(); 
+    URL.revokeObjectURL(url);
+
     console.timeEnd("[Demo] total");
+    console.log("[Demo] ✅ All good. CSV downloaded.");
     
   } catch (error) {
-    console.error("Demo failed:", error);
+    console.error("[Demo] ❌ Critical error:", error);
+    console.error("[Demo] Stack trace:", error.stack);
   }
 })();
 ```
 
 ## Raw URLs for Testing
+These URLs can be accessed directly to verify the files are reachable:
+
 - **WebLLM Runtime**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/webllm/web-llm.mjs
 - **Model Config**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main/mlc-chat-config.json
-- **Utilities**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/src/taxonomyStore.ts
+- **Data Store**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/src/taxonomyStore.js
 - **Sample Data**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/data/sample-taxonomy.csv
 
 ## What it demonstrates

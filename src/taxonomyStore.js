@@ -103,7 +103,7 @@ export async function buildPromptBlock(group = "Default") {
  * Get all available group identifiers
  * @returns Promise resolving to array of group strings
  */
-export async function getAvailableLOBs() {
+export async function getAvailableGroups() {
   try {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readonly');

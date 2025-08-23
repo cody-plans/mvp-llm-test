@@ -1,0 +1,3 @@
+version,active,category_id,category_label,category_order,subcategory_id,subcategory_label,subcategory_order,hint,definition,keywords
+1.0,True,CategoryA,Category A,2,SubA1,Subcategory A1,3,Sample subcategory A1,Example description for subcategory A1.,example;sample;test
+1.0,True,CategoryB,Category B,1,SubB1,Subcategory B1,2,Sample subcategory B1,Example description for subcategory B1.,demo;example;sample

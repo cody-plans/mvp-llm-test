@@ -1,6 +1,0 @@
-{
-  "Accounts": ["Login/Password", "KYC/Verification", "Transfers"],
-  "Orders & Trading": ["Place Order", "Modify/Cancel", "Status"],
-  "Products": ["Stocks", "Options", "ETFs"],
-  "Other": ["General"]
-}

@@ -1,12 +1,13 @@
-# MVP – Chrome Snippet Dummy Classifier (No npm)
+# MVP – Chrome Snippet LLM Classifier (No npm)
 
 This repo proves our company environment can:
 1) Load an ES module and JSON from GitHub Raw,
-2) Run a tiny dummy "classifier" in the browser,
+2) Run an LLM-based classifier using WebLLM runtime,
 3) Export a CSV – all without npm/Hugging Face/servers.
 
 ## Files
-- `web/simple-classifier.mjs` – keyword-based dummy classifier.
+- `webllm/web-llm.mjs` – WebLLM runtime engine.
+- `models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/` – MLC format model files.
 - `data/taxonomy.json` – category → subcategories.
 - `data/demo-questions.json` – sample questions.
 
@@ -32,14 +33,6 @@ const BRANCH = "main";
       const url = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
       const module = await import(url);
       
-      // Validate module exports
-      if (!module.classify || typeof module.classify !== 'function') {
-        throw new Error('Module missing required classify function');
-      }
-      if (!module.MODULE_VERSION) {
-        throw new Error('Module missing MODULE_VERSION');
-      }
-      
       return module;
     } catch (error) {
       console.error(`[MVP] ❌ Failed to import ${pathToESM}:`, error);
@@ -50,9 +43,9 @@ const BRANCH = "main";
   try {
     console.time("[MVP] total");
     
-    // 1) Load the dummy classifier module
-    const mod = await importFromGitHub("web/simple-classifier.mjs");
-    console.log("[MVP] Module loaded, version =", mod.MODULE_VERSION);
+    // 1) Load WebLLM runtime
+    const webllm = await importFromGitHub("webllm/web-llm.mjs");
+    console.log("[MVP] WebLLM runtime loaded");
 
     // 2) Load taxonomy + demo questions
     const [taxonomy, questions] = await Promise.all([
@@ -69,14 +62,36 @@ const BRANCH = "main";
       throw new Error('No taxonomy loaded');
     }
 
-    // 4) Run dummy classification
-    const results = questions.map(q => {
-      const r = mod.classify(q, taxonomy);
-      return { question: q, ...r };
+    // 4) Initialize LLM engine
+    const engine = await webllm.CreateMLCEngine("Qwen2.5-0.5B-Instruct-q4f16_1-MLC", {
+      appConfig: {
+        model_list: [{
+          model: GH_RAW("models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main"),
+          model_id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
+        }]
+      }
     });
+    console.log("[MVP] LLM engine ready");
+
+    // 5) Run LLM classification
+    const results = [];
+    for (const q of questions) {
+      const messages = [
+        { role: "system", content: "You are a JSON classifier. Return ONLY a JSON object with keys: category, subcategory, confidence, rationale." },
+        { role: "user", content: `Classify: ${q}` }
+      ];
+      const r = await engine.chat.completions.create({ messages, temperature: 0, max_tokens: 120 });
+      const content = r.choices?.[0]?.message?.content ?? "{}";
+      try {
+        const parsed = JSON.parse(content);
+        results.push({ question: q, ...parsed });
+      } catch {
+        results.push({ question: q, category: "Other", subcategory: "General", confidence: 0, rationale: "Parse fail" });
+      }
+    }
     console.table(results);
 
-    // 5) Generate and download CSV
+    // 6) Generate and download CSV
     const csv = [
       ["question","category","subcategory","confidence","rationale"].join(","),
       ...results.map(r => [r.question, r.category, r.subcategory, r.confidence, r.rationale]
@@ -102,14 +117,16 @@ const BRANCH = "main";
 ## Raw URLs for Testing
 These URLs can be accessed directly to verify the files are reachable:
 
-- **Module**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/web/simple-classifier.mjs
+- **WebLLM Runtime**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/webllm/web-llm.mjs
+- **Model Config**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main/mlc-chat-config.json
 - **Taxonomy**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/data/taxonomy.json
 - **Questions**: https://raw.githubusercontent.com/cody-plans/mvp-llm-test/main/data/demo-questions.json
 
 ## What it proves
 - ✅ **ES Module loading** from GitHub Raw URLs
+- ✅ **LLM runtime loading** without npm
 - ✅ **JSON fetching** and parsing
-- ✅ **Browser-based execution** without npm
+- ✅ **Browser-based LLM execution** without npm
 - ✅ **CSV export** functionality
 - ✅ **No external dependencies** or services
 
@@ -117,7 +134,7 @@ Perfect for proving the concept works in your company's restricted environment!
 
 ## Browser LLM (WebLLM) Assets
 
-This repo can host a tiny browser LLM runtime and model for Chrome DevTools:
+This repo hosts a tiny browser LLM runtime and model for Chrome DevTools:
 - `webllm/web-llm.mjs`
 - `models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/` (MLC format)
 
